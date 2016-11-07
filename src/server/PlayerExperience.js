@@ -36,7 +36,7 @@ export default class PlayerExperience extends Experience {
     // (TOFIX: delayed in setTimeout for now because OSC not init at start.)
     setTimeout(() => {
       // sync. clocks
-      const clockInterval = 0.1; // refresh interval in seconds
+      const clockInterval = 0.01; // refresh interval in seconds
       setInterval(() => { this.osc.send('/clock', this.sync.getSyncTime()); }, 1000 * clockInterval);
     }, 1000);
 
@@ -67,6 +67,14 @@ export default class PlayerExperience extends Experience {
       this.oriMap.set(client.index, data);
       // send to OSC
       this.osc.send('/player/deviceOrientation', [client.index, data[0], data[1], data[2]]);
+    });
+
+    // propagate msg from soundworks client to OSC client
+    this.receive(client, 'devicetouch', (data) => {
+      // save local
+      this.oriMap.set(client.index, data);
+      // send to OSC
+      this.osc.send('/player/deviceTouch', [client.index, data[0], data[1]]);
     });
 
     // gesture callback
