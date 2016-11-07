@@ -163,6 +163,8 @@ export default class PlayerExperience extends soundworks.Experience {
     surface.addListener('touchmove', (id, normX, normY) => {
       // save touch data
       this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
+      // send data to server
+      this.send('devicetouch', [normX, normY]);
     });
 
     surface.addListener('touchend', (id, normX, normY) => {
