@@ -1,0 +1,4 @@
+/Users/davipoir/Projects/Cosima/residences/lbianchi/soundworks-table/public/sounds/100_celt_bass.mp3
+/Users/davipoir/Projects/Cosima/residences/lbianchi/soundworks-table/public/sounds/100_celt_drums.mp3
+/Users/davipoir/Projects/Cosima/residences/lbianchi/soundworks-table/public/sounds/100_celt_melody.mp3
+/Users/davipoir/Projects/Cosima/residences/lbianchi/soundworks-table/public/sounds/100_metro_drums.mp3
