@@ -10,7 +10,7 @@ const cwd = process.cwd();
 export default {
   // name of the application, used in the `.ejs` template and by default in
   // the `platform` service to populate its view
-  appName: 'Template',
+  appName: 'Table Project',
 
   // name of the environnement ('production' enable cache in express application)
   env: 'development',
@@ -44,7 +44,7 @@ export default {
     // list of predefined labels
     labels: null,
     // list of predefined coordinates given as an array of `[x:Number, y:Number]`
-    coordinates: null,
+    coordinates: [ [0, -1], [-1, 0], [0, 1], [1, 1] ],
     // maximum number of clients allowed in a position
     maxClientsPerPosition: 1,
     // maximum number of positions (may limit or be limited by the number of
