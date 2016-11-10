@@ -70,11 +70,31 @@ export default class PlayerExperience extends Experience {
     });
 
     // propagate msg from soundworks client to OSC client
+    this.receive(client, 'deviceShake', (data) => {
+      // send to OSC
+      this.osc.send('/player/deviceShake', [client.index, 1]);
+    });
+
+    // propagate msg from soundworks client to OSC client
+    this.receive(client, 'deviceAcc', (data) => {
+      // send to OSC
+      this.osc.send('/player/deviceAcc', [client.index, data]);
+    });    
+
+    // propagate msg from soundworks client to OSC client
     this.receive(client, 'devicetouch', (data) => {
       // save local
-      this.oriMap.set(client.index, data);
+      // this.oriMap.set(client.index, data);
       // send to OSC
       this.osc.send('/player/deviceTouch', [client.index, data[0], data[1]]);
+    });
+
+    // propagate msg from soundworks client to OSC client
+    this.receive(client, 'devicetouchIsOn', (data) => {
+      // save local
+      // this.oriMap.set(client.index, data);
+      // send to OSC
+      this.osc.send('/player/deviceTouchIsOn', [client.index, data]);
     });
 
     // gesture callback
@@ -103,41 +123,46 @@ export default class PlayerExperience extends Experience {
     let aimAzim = ori[0] * (Math.PI / 180); // TODO: need 360 modulo for ori?
 
     switch (gestureType) {
-      case 'swipeUp': // find targeted player and send a sound
+      case 'swipeUp': 
+        // send direct info to MaxMSP
         console.log('swipe up');
+        this.osc.send('/player/swipeUp', senderId);
 
-        // get sender coords
-        let coordinates = this.sharedConfig.get('setup.coordinates');
-        let senderCoord = coordinates[senderId];
+        ///////
+        // find targeted player and send a sound
+        ///////
+        // // get sender coords
+        // let coordinates = this.sharedConfig.get('setup.coordinates');
+        // let senderCoord = coordinates[senderId];
 
-        // find targeted player (smaller angle)
-        let minDistDeg = Infinity;
-        let targetId = -1;
-        this.playerMap.forEach((client, receiverId) => {
-          // discard sender itself
-          if (receiverId === senderId) return;
+        // // find targeted player (smaller angle)
+        // let minDistDeg = Infinity;
+        // let targetId = -1;
+        // this.playerMap.forEach((client, receiverId) => {
+        //   // discard sender itself
+        //   if (receiverId === senderId) return;
 
-          let playerCoord = coordinates[receiverId];
-          let playerSenderVect = [playerCoord[0] - senderCoord[0], playerCoord[1] - senderCoord[1]];
-          // aim vect is facing center table + azim offset
-          let aimVect = [playerCoord[0] * Math.cos(aimAzim) - playerCoord[1] * Math.sin(aimAzim),
-            playerCoord[0] * Math.sin(aimAzim) + playerCoord[1] * Math.cos(aimAzim)
-          ];
-          // delta angle in degrees
-          let dist = Math.atan2(playerSenderVect[1] - aimVect[1], playerSenderVect[0] - aimVect[0]) * 180 / Math.PI;
-          // var angleDeg = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-          if (Math.abs(dist) < minDistDeg) {
-            minDistDeg = dist;
-            targetId = receiverId;
-          }
-          console.log(receiverId, dist, minDistDeg, targetId);
-        });
+        //   let playerCoord = coordinates[receiverId];
+        //   let playerSenderVect = [playerCoord[0] - senderCoord[0], playerCoord[1] - senderCoord[1]];
+        //   // aim vect is facing center table + azim offset
+        //   let aimVect = [playerCoord[0] * Math.cos(aimAzim) - playerCoord[1] * Math.sin(aimAzim),
+        //     playerCoord[0] * Math.sin(aimAzim) + playerCoord[1] * Math.cos(aimAzim)
+        //   ];
+        //   // delta angle in degrees
+        //   let dist = Math.atan2(playerSenderVect[1] - aimVect[1], playerSenderVect[0] - aimVect[0]) * 180 / Math.PI;
+        //   // var angleDeg = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+        //   if (Math.abs(dist) < minDistDeg) {
+        //     minDistDeg = dist;
+        //     targetId = receiverId;
+        //   }
+        //   console.log(receiverId, dist, minDistDeg, targetId);
+        // });
 
-        // send msg to this player
-        if (targetId > -1) {
-          console.log('sending swiped sound to client', targetId);
-          this.send(this.playerMap.get(targetId), 'swipeTarget');
-        }
+        // // send msg to this player
+        // if (targetId > -1) {
+        //   console.log('sending swiped sound to client', targetId);
+        //   this.send(this.playerMap.get(targetId), 'swipeTarget');
+        // }
         break;
 
       case 'swipeDown':

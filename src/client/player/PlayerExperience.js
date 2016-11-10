@@ -45,6 +45,8 @@ export default class PlayerExperience extends soundworks.Experience {
     this.touchDataMap = new Map();
     this.oriDataLast = [Infinity, Infinity, Infinity];
     this.oriRefreshDist = 5.; // in deg str
+    this.lastShakeTime = 0.0;
+    this.accDataLast = [Infinity, Infinity, Infinity];
   }
 
   init() {
@@ -99,24 +101,85 @@ export default class PlayerExperience extends soundworks.Experience {
     // setup motion input listeners
     if (this.motionInput.isAvailable('deviceorientation')) {
       this.motionInput.addListener('deviceorientation', (data) => {
+
+        //////// STABILIZE DATA ////
+
+        let dataStable = [0,0,0];
+
+        // move source: stabilize azimuth
+        // let val = data[0] - this.offsetAzim;
+        let val = data[0];
+        if (Math.abs(data[1]) > 90){
+          if( data[0] < 180)  val =  val + 180;
+          else val = val - 180;
+        }
+        dataStable[0] = val;
+      
+        // apply effect (after remapping of data to traditional roll)
+        val = - data[2];
+        if (Math.abs(data[1]) > 90) val = 180 + val;
+        dataStable[1] = - val;
+        if( dataStable[1] < -180 ) dataStable[1] += (270 + 90);
+
+        // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
+        val = data[1];
+        if( data[1] > 90 ) val = 180 - data[1];
+        if( data[1] < -90 ) val = -180 - data[1];
+        // val = Math.min( Math.max(0, (90 + val) / 180), 1);
+        dataStable[2] = 90 + val;
+
+        ////////
+
         // throttle mechanism
         let last = this.oriArray.array[this.oriArray.array.length-1];
-        let dist = Math.sqrt( Math.pow(data[0] - last[0], 2) +
-                              Math.pow(data[1] - last[1], 2) +
-                              Math.pow(data[2] - last[2], 2) );
+        let dist = Math.sqrt( Math.pow(dataStable[0] - last[0], 2) +
+                              Math.pow(dataStable[1] - last[1], 2) +
+                              Math.pow(dataStable[2] - last[2], 2) );
         if (dist < this.oriRefreshDist) { return }
-        this.oriArray.push([data[0], data[1], data[2], this.sync.getSyncTime()]);
+        this.oriArray.push([dataStable[0], dataStable[1], dataStable[2], this.sync.getSyncTime()]);
         
+
         // display orientation info on screen
-        document.getElementById("value0").innerHTML = Math.round(data[0] * 10) / 10;
-        document.getElementById("value1").innerHTML = Math.round(data[1] * 10) / 10;
-        document.getElementById("value2").innerHTML = Math.round(data[2] * 10) / 10;
+        document.getElementById("value0").innerHTML = Math.round(dataStable[0] * 10) / 10;
+        document.getElementById("value1").innerHTML = Math.round(dataStable[1] * 10) / 10;
+        document.getElementById("value2").innerHTML = Math.round(dataStable[2] * 10) / 10;
         // send data to server
-        this.send('deviceorientation', data);
+        this.send('deviceorientation', dataStable);
         // gesture detect
         this.motionGestureDetect();
       });
     }
+
+    // setup motion input listeners (shake to change listening mode)
+    if (this.motionInput.isAvailable('accelerationIncludingGravity')) {
+      this.motionInput.addListener('accelerationIncludingGravity', (data) => {
+
+          // throttle
+          let delta = Math.abs(this.accDataLast[0] - data[0]) + Math.abs(this.accDataLast[1] - data[1]) + Math.abs(this.accDataLast[2] - data[2]);
+          if( delta < 0.1 ){ return }
+
+          // save new throttle values
+          this.accDataLast[0] = data[0];
+          this.accDataLast[1] = data[1];
+          this.accDataLast[2] = data[2];
+
+          let summedAcc = Math.abs( data[0] ) + Math.abs( data[1] ) + Math.abs( data[2] );
+          this.send('deviceAcc', summedAcc );
+          
+          // get acceleration data
+          const mag = Math.sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
+
+
+          // switch between spatialized mono sources / HOA playing on shaking (+ throttle inputs)
+          if (mag > 40 && ( (audioContext.currentTime - this.lastShakeTime) > 0.5) ){
+            // update throttle timer
+            this.lastShakeTime = audioContext.currentTime;
+
+            // play init orientation sound
+            this.send('deviceShake', 1);
+          }
+      });
+    }    
   }
 
   motionGestureDetect(){
@@ -156,6 +219,8 @@ export default class PlayerExperience extends soundworks.Experience {
         this.touchDataMap.set(id, []);
         // save touch data
         this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
+        // send touch is on
+        this.send('devicetouchIsOn', 1);
         return
       }
     });
@@ -172,6 +237,8 @@ export default class PlayerExperience extends soundworks.Experience {
       this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
       // gesture detection
       this.touchGestureDetect(this.touchDataMap.get(id));
+      // send touch is off
+      this.send('devicetouchIsOn', 0);      
     });
   }
 
