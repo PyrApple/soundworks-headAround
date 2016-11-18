@@ -49,7 +49,7 @@ export default {
     maxClientsPerPosition: 1,
     // maximum number of positions (may limit or be limited by the number of
     // labels and/or coordinates)
-    capacity: Infinity,
+    capacity: 4,
   },
 
   // socket.io configuration
@@ -82,11 +82,13 @@ export default {
   // configuration of the `osc` service
   osc: {
     // IP of the currently running node server
-    receiveAddress: '169.254.197.119',
+    // receiveAddress: '169.254.197.119',
+    receiveAddress: '127.0.0.1',
     // port listening for incomming messages
     receivePort: 57121,
     // IP of the remote application
-    sendAddress: '169.254.197.118',
+    // sendAddress: '169.254.197.118',
+    sendAddress: '127.0.0.1',
     // port where the remote application is listening for messages
     sendPort: 57120,
   },

@@ -1,8 +1,11 @@
 import * as soundworks from 'soundworks/client';
 import PlayerRenderer from './PlayerRenderer';
+import SpatSyncSourceHandler from './SpatSyncSourceHandler';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
+
+const  colorList = [ '#e54444', '#798edd', '#fdd75f', '#5dd28e', '#a9b8c1' ];
 
 const viewTemplate = `
   <canvas class="background"></canvas>
@@ -47,12 +50,14 @@ export default class PlayerExperience extends soundworks.Experience {
     this.oriRefreshDist = 5.; // in deg str
     this.lastShakeTime = 0.0;
     this.accDataLast = [Infinity, Infinity, Infinity];
+    this.player = { soundId: -1, locationId: 1 };
+    
   }
 
   init() {
     // initialize the view
     this.viewTemplate = viewTemplate;
-    this.viewContent = { title: `Candidate <br />` + (client.index) };
+    this.viewContent = { title: `Soundscape <br />` + (client.index) };
     this.viewCtor = soundworks.CanvasView;
     this.viewOptions = { preservePixelRatio: true };
     this.view = this.createView();
@@ -67,25 +72,37 @@ export default class PlayerExperience extends soundworks.Experience {
       this.initMotion();
     }
 
-
-
     this.show();
 
+    // disable text selection, magnifier, and screen move on swipe on ios
+    document.getElementsByTagName("body")[0].addEventListener("touchstart",
+    function(e) { e.returnValue = false });
 
     // receive callback
-    this.receive('osc', (values) => {
-      // set log on screen
-      document.getElementById("title").innerHTML = values;
+    this.receive('soundId', (value) => {
+      document.getElementById("title").innerHTML = 'Soundscape <br />' + value;
+      if( value > -1 ){
+        this.player.soundId = value;
+        this.renderer.setColor(colorList[value]);
+      }
+      else{
+        console.log('no more sounds vailable to switch with');
+      }
     });
 
-    // receive callback
-    this.receive('swipeTarget', (values) => {
-      // play sound
-      let src = audioContext.createBufferSource();
-      src.buffer = this.loader.buffers[0];
-      src.connect(audioContext.destination);
-      src.start(0);
+     // receive callback
+    this.receive('locationId', (value) => {
+      this.player.locationId = value;
+      console.log('new loc:', this.player.locationId);
+      // this.renderer.setMode(value); // no auto update, let users decide when they want to send their sound on ambi speakers
     });
+    
+    this.spatSyncSourceHandler = new SpatSyncSourceHandler();
+
+    // initialize rendering
+    this.player.soundId = client.index;
+    this.renderer = new PlayerRenderer(90, 800, 0.001, .9, colorList[this.player.soundId]);
+    this.view.addRenderer(this.renderer);
 
   }
 
@@ -144,7 +161,7 @@ export default class PlayerExperience extends soundworks.Experience {
         document.getElementById("value1").innerHTML = Math.round(dataStable[1] * 10) / 10;
         document.getElementById("value2").innerHTML = Math.round(dataStable[2] * 10) / 10;
         // send data to server
-        this.send('deviceorientation', dataStable);
+        this.sendToOsc(['deviceOrientation', dataStable[0], dataStable[1], dataStable[2] ]);
         // gesture detect
         this.motionGestureDetect();
       });
@@ -154,9 +171,11 @@ export default class PlayerExperience extends soundworks.Experience {
     if (this.motionInput.isAvailable('accelerationIncludingGravity')) {
       this.motionInput.addListener('accelerationIncludingGravity', (data) => {
 
+          this.renderer.setWeightForce(data);
+
           // throttle
           let delta = Math.abs(this.accDataLast[0] - data[0]) + Math.abs(this.accDataLast[1] - data[1]) + Math.abs(this.accDataLast[2] - data[2]);
-          if( delta < 0.1 ){ return }
+          if( delta < 1.5 ){ return }
 
           // save new throttle values
           this.accDataLast[0] = data[0];
@@ -164,7 +183,7 @@ export default class PlayerExperience extends soundworks.Experience {
           this.accDataLast[2] = data[2];
 
           let summedAcc = Math.abs( data[0] ) + Math.abs( data[1] ) + Math.abs( data[2] );
-          this.send('deviceAcc', summedAcc );
+          this.sendToOsc(['deviceAcc', summedAcc]);
           
           // get acceleration data
           const mag = Math.sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
@@ -176,11 +195,13 @@ export default class PlayerExperience extends soundworks.Experience {
             this.lastShakeTime = audioContext.currentTime;
 
             // play init orientation sound
-            this.send('deviceShake', 1);
+            this.sendToOsc(['deviceShake', 1]);
           }
       });
     }    
+
   }
+
 
   motionGestureDetect(){
     // detect "drop" like gesture (from flat / screen up to flat / screen bottom)
@@ -214,22 +235,19 @@ export default class PlayerExperience extends soundworks.Experience {
 
     // setup touch listeners (reset listener orientation on touch)
     surface.addListener('touchstart', (id, normX, normY) => {
-      if (!this.isOrientationInitialized) {
-        // reset
-        this.touchDataMap.set(id, []);
-        // save touch data
-        this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
-        // send touch is on
-        this.send('devicetouchIsOn', 1);
-        return
-      }
+      // reset
+      this.touchDataMap.set(id, []);
+      // save touch data
+      this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
+      // send touch is on
+      this.sendToOsc(['deviceTouchIsOn', 1]);
     });
 
     surface.addListener('touchmove', (id, normX, normY) => {
       // save touch data
       this.touchDataMap.get(id).push([normX, normY, this.sync.getSyncTime()]);
       // send data to server
-      this.send('devicetouch', [normX, normY]);
+      this.sendToOsc(['deviceTouch', normX, normY]);
     });
 
     surface.addListener('touchend', (id, normX, normY) => {
@@ -238,7 +256,7 @@ export default class PlayerExperience extends soundworks.Experience {
       // gesture detection
       this.touchGestureDetect(this.touchDataMap.get(id));
       // send touch is off
-      this.send('devicetouchIsOn', 0);      
+      this.sendToOsc(['deviceTouchIsOn', 0]);
     });
   }
 
@@ -251,17 +269,35 @@ export default class PlayerExperience extends soundworks.Experience {
     if (pathDuration > 2.0) return;
 
     // swipes
-    if (pathVect[1] > 0.4) this.send('gesture', client.index, 'swipeDown');
-    if (pathVect[1] < -0.4) this.send('gesture', client.index, 'swipeUp');
+    if (pathVect[1] > 0.4){
+      this.send('gesture', client.index, 'swipeDown');
+      if( this.player.locationId == 1 ){
+        // sounds comes back to cellphone speakers
+
+        // visual update
+        this.renderer.setMode(0);
+      }
+    }
+    if (pathVect[1] < -0.4){
+      this.send('gesture', client.index, 'swipeUp');
+      if( this.player.locationId == 1 ){
+        // sounds quits cellphone
+
+        // visual update
+        this.renderer.setMode(1);
+      }    
+    }
   }
 
   //////////////////////////////////////////////////////////////////
 
+  sendToOsc(msg){
+    // only send if in Ambisonic env
+    if( this.player.locationId == 0 ) return;
+    msg.unshift(client.index);
+    this.send('directToOSC', msg);
+  }
 }
-
-
-
-
 
 class CircularArray {
 
