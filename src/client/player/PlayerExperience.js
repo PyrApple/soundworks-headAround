@@ -1,6 +1,8 @@
 import * as soundworks from 'soundworks/client';
 import PlayerRenderer from './PlayerRenderer';
-import SpatSyncSourceHandler from './SpatSyncSourceHandler';
+// import SpatSyncSourceHandler from './SpatSyncSourceHandler';
+import * as Audio from './SpatSyncSourceHandler';
+import './fulltilt';
 
 const audioContext = soundworks.audioContext;
 const client = soundworks.client;
@@ -42,7 +44,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.initTouch = this.initTouch.bind(this);
     this.touchGestureDetect = this.touchGestureDetect.bind(this);
     this.initMotion = this.initMotion.bind(this);
-    this.motionGestureDetect = this.motionGestureDetect.bind(this);
+    // this.motionGestureDetect = this.motionGestureDetect.bind(this);
 
     // local attributes
     this.touchDataMap = new Map();
@@ -50,7 +52,7 @@ export default class PlayerExperience extends soundworks.Experience {
     this.oriRefreshDist = 5.; // in deg str
     this.lastShakeTime = 0.0;
     this.accDataLast = [Infinity, Infinity, Infinity];
-    this.player = { soundId: -1, locationId: 1 };
+    this.player = { soundId: -1, locationId: 1, inAmbiSphere: false };
     
   }
 
@@ -84,6 +86,7 @@ export default class PlayerExperience extends soundworks.Experience {
       if( value > -1 ){
         this.player.soundId = value;
         this.renderer.setColor(colorList[value]);
+        this.soundHandler.setId(value);
       }
       else{
         console.log('no more sounds vailable to switch with');
@@ -97,12 +100,23 @@ export default class PlayerExperience extends soundworks.Experience {
       // this.renderer.setMode(value); // no auto update, let users decide when they want to send their sound on ambi speakers
     });
     
-    this.spatSyncSourceHandler = new SpatSyncSourceHandler();
+    // this.spatSyncSourceHandler = new SpatSyncSourceHandler();
 
     // initialize rendering
     this.player.soundId = client.index;
     this.renderer = new PlayerRenderer(90, 800, 0.001, .9, colorList[this.player.soundId]);
     this.view.addRenderer(this.renderer);
+
+    // initialize audio
+    this.soundHandler = new Audio.SoundHandler( this );
+    this.soundHandler.setId( this.player.soundId );
+
+    // set interval to update audio pos with renderer's
+    let clockInterval = 0.1;
+    setInterval( () => { 
+      if( !this.player.inAmbiSphere )
+        this.soundHandler.setPos( this.renderer.getBallPos() );
+    }, 1000 * clockInterval);
 
   }
 
@@ -116,56 +130,127 @@ export default class PlayerExperience extends soundworks.Experience {
     this.oriArray = new CircularArray(50, [0,0,0, 0.0]);
 
     // setup motion input listeners
-    if (this.motionInput.isAvailable('deviceorientation')) {
-      this.motionInput.addListener('deviceorientation', (data) => {
+    // if (this.motionInput.isAvailable('deviceorientation')) {
+    //   this.motionInput.addListener('deviceorientation', (data) => {
 
-        //////// STABILIZE DATA ////
+        // //////// STABILIZE DATA ////
 
-        let dataStable = [0,0,0];
+        // let dataStable = [0,0,0];
 
-        // move source: stabilize azimuth
-        // let val = data[0] - this.offsetAzim;
-        let val = data[0];
-        if (Math.abs(data[1]) > 90){
-          if( data[0] < 180)  val =  val + 180;
-          else val = val - 180;
-        }
-        dataStable[0] = val;
+        // // move source: stabilize azimuth
+        // // let val = data[0] - this.offsetAzim;
+        // let val = data[0];
+        // if (Math.abs(data[1]) > 90){
+        //   if( data[0] < 180)  val =  val + 180;
+        //   else val = val - 180;
+        // }
+        // dataStable[0] = val;
       
-        // apply effect (after remapping of data to traditional roll)
-        val = - data[2];
-        if (Math.abs(data[1]) > 90) val = 180 + val;
-        dataStable[1] = - val;
-        if( dataStable[1] < -180 ) dataStable[1] += (270 + 90);
+        // // apply effect (after remapping of data to traditional roll)
+        // val = data[2];
+        // if (Math.abs(data[1]) > 90) val = 180 - val;
+        // dataStable[1] = val;
+        // if( dataStable[1] < -180 ) dataStable[1] += (270 + 90);
 
-        // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
-        val = data[1];
-        if( data[1] > 90 ) val = 180 - data[1];
-        if( data[1] < -90 ) val = -180 - data[1];
-        // val = Math.min( Math.max(0, (90 + val) / 180), 1);
-        dataStable[2] = 90 + val;
+        // // apply volume (-90 90 whatever "effect angle" value -> DOESN T WORK)
+        // val = data[1];
+        // if( data[1] > 90 ) val = 180 - data[1];
+        // if( data[1] < -90 ) val = -180 - data[1];
+        // // val = Math.min( Math.max(0, (90 + val) / 180), 1);
+        // dataStable[2] = 90 + val;
 
-        ////////
+        // ////////
 
-        // throttle mechanism
-        let last = this.oriArray.array[this.oriArray.array.length-1];
-        let dist = Math.sqrt( Math.pow(dataStable[0] - last[0], 2) +
-                              Math.pow(dataStable[1] - last[1], 2) +
-                              Math.pow(dataStable[2] - last[2], 2) );
-        if (dist < this.oriRefreshDist) { return }
-        this.oriArray.push([dataStable[0], dataStable[1], dataStable[2], this.sync.getSyncTime()]);
+        // // throttle mechanism
+        // let last = this.oriArray.array[this.oriArray.array.length-1];
+        // let dist = Math.sqrt( Math.pow(dataStable[0] - last[0], 2) +
+        //                       Math.pow(dataStable[1] - last[1], 2) +
+        //                       Math.pow(dataStable[2] - last[2], 2) );
+        // if (dist < this.oriRefreshDist) { return }
+        // this.oriArray.push([dataStable[0], dataStable[1], dataStable[2], this.sync.getSyncTime()]);
         
 
-        // display orientation info on screen
-        document.getElementById("value0").innerHTML = Math.round(dataStable[0] * 10) / 10;
-        document.getElementById("value1").innerHTML = Math.round(dataStable[1] * 10) / 10;
-        document.getElementById("value2").innerHTML = Math.round(dataStable[2] * 10) / 10;
+        // // display orientation info on screen
+        // document.getElementById("value0").innerHTML = Math.round(dataStable[0] * 10) / 10;
+        // document.getElementById("value1").innerHTML = Math.round(dataStable[1] * 10) / 10;
+        // document.getElementById("value2").innerHTML = Math.round(dataStable[2] * 10) / 10;
+
+        // // send data to server
+        // this.sendToOsc(['deviceOrientation', dataStable[0], dataStable[1], dataStable[2] ]);
+        // // update local volume pan
+        // if( !this.player.inAmbiSphere )
+        //   this.soundHandler.setPan(dataStable);
+        
+        // // gesture detect
+        // // this.motionGestureDetect();
+
+    //   });
+    // }
+
+    // Obtain a new *world-oriented* Full Tilt JS DeviceOrientation Promise
+    var promise = FULLTILT.getDeviceOrientation({ 'type': 'world' });
+
+    // Wait for Promise result
+    promise.then( (deviceOrientation) => { // Device Orientation Events are supported
+
+      // Register a callback to run every time a new 
+      // deviceorientation event is fired by the browser.
+      deviceOrientation.listen( () => {
+
+        // Get the current *screen-adjusted* device orientation angles
+        var currentOrientation = deviceOrientation.getScreenAdjustedEuler();
+
+        // throttle mechanism
+        let dist = Math.sqrt( Math.pow(currentOrientation.alpha - this.oriDataLast[0], 2) +
+                              Math.pow(currentOrientation.beta - this.oriDataLast[1], 2) +
+                              Math.pow(currentOrientation.gamma - this.oriDataLast[2], 2) );
+        if (dist < this.oriRefreshDist) { return }
+
+        if( Math.abs(currentOrientation.beta) > 90 ){ // screen topple from up to down
+          
+          currentOrientation.gamma = 180 - currentOrientation.gamma
+
+          if( currentOrientation.beta > 0 ){ 
+            currentOrientation.beta = 180 - currentOrientation.beta;
+          }
+          else{ 
+            currentOrientation.beta = -180 - currentOrientation.beta;
+          }
+          // currentOrientation.beta = Math.sign(currentOrientation.beta) * (180 - currentOrientation.beta);
+          currentOrientation.alpha = currentOrientation.alpha - 180;
+        }
+        else{
+          if( currentOrientation.gamma < 0 ) // mod
+            currentOrientation.gamma = 360 + currentOrientation.gamma;          
+        }
+
+        // console.log(currentOrientation);
+
+        document.getElementById("value0").innerHTML = Math.round(currentOrientation.alpha * 10) / 10;
+        document.getElementById("value1").innerHTML = Math.round(currentOrientation.beta * 10) / 10;
+        document.getElementById("value2").innerHTML = Math.round(currentOrientation.gamma * 10) / 10;
+
         // send data to server
-        this.sendToOsc(['deviceOrientation', dataStable[0], dataStable[1], dataStable[2] ]);
-        // gesture detect
-        this.motionGestureDetect();
+        this.sendToOsc(['deviceOrientation', currentOrientation.alpha, currentOrientation.beta, currentOrientation.gamma ]);
+        // update local volume pan
+        // if( !this.player.inAmbiSphere )
+        //   this.soundHandler.setPan(dataStable);        
+
+        if( !this.player.inAmbiSphere ){
+          this.soundHandler.setPan(currentOrientation.gamma);
+        }
+
       });
-    }
+
+    }).catch( (errorMessage) => { // Device Orientation Events are not supported
+
+      console.log(errorMessage);
+
+      // Implement some fallback controls here...
+
+    });
+
+
 
     // setup motion input listeners (shake to change listening mode)
     if (this.motionInput.isAvailable('accelerationIncludingGravity')) {
@@ -203,26 +288,26 @@ export default class PlayerExperience extends soundworks.Experience {
   }
 
 
-  motionGestureDetect(){
-    // detect "drop" like gesture (from flat / screen up to flat / screen bottom)
-    let first = this.oriArray.array[0];
-    let last = this.oriArray.array[ this.oriArray.array.length-1 ];
-    let duration = last[3] - first[3];
+  // motionGestureDetect(){
+  //   // detect "drop" like gesture (from flat / screen up to flat / screen bottom)
+  //   let first = this.oriArray.array[0];
+  //   let last = this.oriArray.array[ this.oriArray.array.length-1 ];
+  //   let duration = last[3] - first[3];
     
-    if( duration < 4.0 ) { return } // check if fast enough
-    if( (Math.abs(last[2]) > 10) || (Math.abs(last[2]) > 10) ) { return } // check if flat at begin and end
-    // check if reached a peak in between
-    let maxValue = 0;
-    this.oriArray.array.forEach((data) => {
-      maxValue = Math.max(maxValue, Math.abs(data[2]));
-    });
-    if( maxValue > 80 ) { 
-      this.send('gesture', client.index, 'drop'); 
-      console.log('DROP DETECTED');
-    }
+  //   if( duration < 4.0 ) { return } // check if fast enough
+  //   if( (Math.abs(last[2]) > 10) || (Math.abs(last[2]) > 10) ) { return } // check if flat at begin and end
+  //   // check if reached a peak in between
+  //   let maxValue = 0;
+  //   this.oriArray.array.forEach((data) => {
+  //     maxValue = Math.max(maxValue, Math.abs(data[2]));
+  //   });
+  //   if( maxValue > 80 ) { 
+  //     this.send('gesture', client.index, 'drop'); 
+  //     console.log('DROP DETECTED');
+  //   }
 
 
-  }
+  // }
 
   //////////////////////////////////////////////////////////////////
 
@@ -273,7 +358,7 @@ export default class PlayerExperience extends soundworks.Experience {
       this.send('gesture', client.index, 'swipeDown');
       if( this.player.locationId == 1 ){
         // sounds comes back to cellphone speakers
-
+        this.player.inAmbiSphere = false;
         // visual update
         this.renderer.setMode(0);
       }
@@ -282,7 +367,7 @@ export default class PlayerExperience extends soundworks.Experience {
       this.send('gesture', client.index, 'swipeUp');
       if( this.player.locationId == 1 ){
         // sounds quits cellphone
-
+        this.player.inAmbiSphere = true;
         // visual update
         this.renderer.setMode(1);
       }    
@@ -293,7 +378,7 @@ export default class PlayerExperience extends soundworks.Experience {
 
   sendToOsc(msg){
     // only send if in Ambisonic env
-    if( this.player.locationId == 0 ) return;
+    if( this.player.locationId == 0 || !this.player.inAmbiSphere ) return;
     msg.unshift(client.index);
     this.send('directToOSC', msg);
   }

@@ -26,6 +26,7 @@
     "source-map-support": "^0.4.0"
   },
   "devDependencies": {
+    "ambisonics": "^0.2.1",
     "babel-core": "^6.6.5",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.6.5",
     "babel-plugin-transform-runtime": "^6.6.0",

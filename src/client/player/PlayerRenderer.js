@@ -90,7 +90,13 @@ export default class PlayerRenderer extends Renderer {
     this.color = color;
     if( this.mode == 1 ) this.bkgChangeColorRequested = true;
   }
-  
+
+  getBallPos(){
+    let normX = this.pos[0] - this.canvasWidth / 2;
+    let normY = this.pos[1] - this.canvasHeight / 2;
+    return [normX, normY];
+  }
+
   /**
    * Draw into canvas.
    * Method is called by animation frame loop in current frame rate.

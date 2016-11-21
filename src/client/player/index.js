@@ -6,11 +6,21 @@ import viewContent from '../shared/viewContent';
 
 // list of files to load (passed to the experience)
 const files = [
-  'sounds/0_TOUCH.wav',
+  'sounds/w01-drops-A-C2.mp3', 
+  'sounds/w02-drops-A-E2.mp3', 
+  'sounds/w03-drops-A-G2.mp3', 
+  'sounds/100_celt_bass copy 2.mp3',
+  'sounds/100_celt_bass copy.mp3',
   'sounds/100_celt_bass.mp3',
+  'sounds/100_celt_drums copy 2.mp3',
+  'sounds/100_celt_drums copy.mp3',
   'sounds/100_celt_drums.mp3',
+  'sounds/100_celt_melody copy 2.mp3',
+  'sounds/100_celt_melody copy.mp3',
   'sounds/100_celt_melody.mp3',
-  'sounds/100_metro_drums.mp3'
+  'sounds/100_metro_drums copy 2.mp3',
+  'sounds/100_metro_drums copy.mp3',
+  'sounds/100_metro_drums.mp3',
 ];
 
 // launch application when document is fully loaded
