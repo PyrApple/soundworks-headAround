@@ -10,7 +10,7 @@ const cwd = process.cwd();
 export default {
   // name of the application, used in the `.ejs` template and by default in
   // the `platform` service to populate its view
-  appName: 'Table Project',
+  appName: 'Head Around',
 
   // name of the environnement ('production' enable cache in express application)
   env: 'development',
@@ -49,7 +49,7 @@ export default {
     maxClientsPerPosition: 1,
     // maximum number of positions (may limit or be limited by the number of
     // labels and/or coordinates)
-    capacity: 4,
+    capacity: 3,
   },
 
   // socket.io configuration

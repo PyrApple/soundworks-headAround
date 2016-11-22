@@ -1,5 +1,0 @@
-/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/Accordo-pizz-harm-01-metrain.aif/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/Accordo-pizz-harm-01.wav/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/Accordo-pizz-harm-02-metrain.aif/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/Accordo-pizz-harm-02.wav/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/rythme-noise-machine2-100ms.aif/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/rythme-noise-machine3-100ms.aif
-/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/100_celt_melody.mp3
-/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/100_celt_bass.mp3
-/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/100_celt_drums.mp3
-/Users/production/Desktop/L_Bianchi/soundworks-table/public/sounds/100_metro_drums.mp3

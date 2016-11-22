@@ -37,10 +37,6 @@ soundworks.server.setClientConfigDefinition((clientType, config, httpRequest) =>
   };
 });
 
-// create server side conductor experience
-const conductor = new soundworks.BasicSharedController('conductor');
-
-
 // create the experience
 // activities must be mapped to client types:
 // - the `'player'` clients (who take part in the scenario by connecting to the
@@ -48,7 +44,7 @@ const conductor = new soundworks.BasicSharedController('conductor');
 // `src/server/playerExperience.js`) and the server side `playerExperience`.
 // - we could also map activities to additional client types (thus defining a
 //   route (url) of the following form: `/${clientType}`)
-const experience = new PlayerExperience('player');
+const experience = new PlayerExperience(['player', 'soloist']);
 
 // start application
 soundworks.server.start();
