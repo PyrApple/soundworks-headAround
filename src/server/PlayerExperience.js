@@ -13,9 +13,6 @@ export default class PlayerExperience extends Experience {
     this.sharedConfig = this.require('shared-config');
     this.sharedConfig.share('setup', 'soloist');
 
-    // binding
-    // ...
-
     // local attributes
     this.soloistMap = new Map();
   }
@@ -34,15 +31,11 @@ export default class PlayerExperience extends Experience {
         // register soloist
         this.soloistMap.set(client.index, ( { client: client, azim: 0, dist: 0, status: 0 } ));
 
-        // announce new source to players
-        // this.broadcast('player', null, 'sourceStatus', [client.index, 1]);
-
         // update status callback
         this.receive(client, 'sourceStatus', (data) => {
           // store local
           let soloist = this.soloistMap.get(client.index);
           soloist.status = data[1];
-          console.log(data);
           // update players
           this.broadcast('player', null, 'sourceStatus', data);
         });
@@ -53,6 +46,7 @@ export default class PlayerExperience extends Experience {
           let soloist = this.soloistMap.get(client.index);
           soloist.azim = data[1];
           soloist.dist = data[2];
+          
           // update players
           this.broadcast('player', null, 'sourcePos', data);
         });
@@ -75,17 +69,10 @@ export default class PlayerExperience extends Experience {
 
     switch (client.type) {
       case 'soloist':
-        
         // unregister soloist
         this.soloistMap.delete(client.index);
-
         // announce removed source to players (make sure if e.g. screen refreshed while finger on it)
         this.broadcast('player', null, 'sourceStatus', [client.index, 0]);
-
-        break;
-        
-      case 'player':
-        
         break;
     }
 

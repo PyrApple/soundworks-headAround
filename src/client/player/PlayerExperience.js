@@ -14,9 +14,6 @@ const viewTemplate = `
       <p class="big" id="title"><%= title %></p>
     </div>
     <div class="section-bottom flex-middle">
-      <p id="value0" class="big"><%= 'NaN' %></p>
-      <p id="value1" class="big"><%= 'NaN' %></p>
-      <p id="value2" class="big"><%= 'NaN' %></p>
     </div>
   </div>
 `;
@@ -34,13 +31,6 @@ export default class PlayerExperience extends soundworks.Experience {
       assetsDomain: assetsDomain,
       files: audioFiles,
     });
-
-    // binding
-    // ...
-
-    // local attributes
-    // ...
-    
   }
 
   init() {
@@ -67,16 +57,14 @@ export default class PlayerExperience extends soundworks.Experience {
 
     // init audio source spatializer
     let roomReverb = false;
-    let ambiOrder = 3;
+    let ambiOrder = 1;
     this.spatSourceHandler = new SpatSourcesHandler(this.loader.buffers, roomReverb, ambiOrder);
 
     // receive callback
     this.receive('sourceStatus', (value) => {
-      console.log('sourceStatus', value);
       let srcId = value[0];
       let status = value[1];
       let fadeInOutTime = 1; // in sec
-      console.log('start source', srcId, status);
       if(status)
         this.spatSourceHandler.startSource(srcId, 0, 0, true, fadeInOutTime);
       else
@@ -84,17 +72,13 @@ export default class PlayerExperience extends soundworks.Experience {
     });
 
     this.receive('sourcePos', (value) => {
-      console.log('sourcePos', value);
       let srcId = value[0];
       let azim = -value[1];
       let dist = 2*value[2] + 0.6;
-      console.log(azim, dist);
       this.spatSourceHandler.setSourcePos( srcId, azim, 0, dist );
     });
 
-
   }
-
 
 }
 
